@@ -14,7 +14,15 @@ def init_connection_pool(minconn=1, maxconn=5):
     global _connection_pool
     if _connection_pool is None:
         try:
-            _connection_pool = SimpleConnectionPool(minconn, maxconn, DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT)
+            _connection_pool = SimpleConnectionPool(
+                minconn,
+                maxconn,
+                user=DB_USER,
+                password=DB_PASSWORD,
+                host=DB_HOST,
+                port=DB_PORT,
+                database=DB_NAME
+            )
             print("\n[db_connection.py] Connection pool initialised\n")
         except Exception as e:
             print("\n[db_connection.py] Could not create connection pool: ", e)
