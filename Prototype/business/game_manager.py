@@ -16,7 +16,7 @@ class GameManager:
         computer_move = get_computer_move()
         result = determine_winner(player_move, computer_move)
 
-        # update local statistics
+        # update local stats
         if result == "win":
             self.wins+=1
         elif result == "loss":
