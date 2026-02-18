@@ -22,7 +22,7 @@ class PlayerRepository:
         except psycopg2.errors.UniqueViolation:
             conn.rollback()
             print(f"\n[player_repo.py] Player '{name} already exists")
-            return "exists", player_id
+            return "exists", None
         except Exception as e:
             conn.rollback()
             print(f"[player_repo.py] Error: {e}")
