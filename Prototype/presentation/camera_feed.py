@@ -1,46 +1,82 @@
 import cv2
 import mediapipe as mp
 
+HAND_CONNECTIONS = [
+    (0, 1), (1, 2), (2, 3), (3, 4),        # THUMB
+    (0, 5), (5, 6), (6, 7), (7, 8),        # INDEX
+    (0, 9), (9, 10), (10, 11), (11, 12),   # MIDDLE
+    (0, 13), (13, 14), (14, 15), (15, 16), # RING
+    (0, 17), (17, 18), (18, 19), (19, 20)  # PINKY
+]
+
 class CameraFeed:
-    def __init__(self, camera_index=0):
-        # initialise webcam
-        self.capture = cv2.VideoCapture(camera_index)
-        
-        # initialise hands
-        self.mp_hands = mp.solutions.hands
-        self.hands = self.mp_hands.Hands(
-            static_image_mode=False,
-            max_num_hands=1,
-            min_detection_confidence=0.7,
-            min_tracking_confidence=0.5
+    def __init__(self, camera_index: int=0):
+        # camera
+        self.cap = cv2.VideoCapture(camera_index)
+        if not self.cap.isOpened():
+            raise RuntimeError(f"[CAMERA FEED] Cannot open camera ID: {camera_index}")
+        # mediapipe tasks hand model
+        model_path = "FYP-Rock-Paper-Scissors-Prediction-System/Prototype/presentation/model/hand_landmarker.task"
+
+        baseOptions = mp.tasks.BaseOptions
+        handLandMarker = mp.tasks.vision.HandLandmarker
+        handLMOptions = mp.tasks.vision.HandLandmarkerOptions
+        runningMode = mp.tasks.vision.RunningMode
+
+        # configure detector - path to hand model, processing a video stream, number of hands
+        options = handLMOptions(
+            base_options=baseOptions(model_asset_path=model_path),
+            running_mode=runningMode.VIDEO,
+            num_hands=1
         )
-        # 
-        self.mp_draw = mp.solutions.drawing_utils
+
+        # create the actual detector
+        self.detector = handLandMarker.create_from_options(options)
+        # a timestamp detector so detection doesnt silently fail
+        self.timestamp = 0;
 
     def get_frame(self):
-        """ capture a frame from the camera """
-        if not self.capture.isOpened():
-            return None
-
-        ret, frame = self.capture.read()
+        """ captures one frame from webcam, runs hand detection, and returns:
+            frame for UI display, and landmarks for business logic """
+        # read frame from webcam
+        ret, frame = self.cap.read()
+        # if frame wasnt captured properly
         if not ret:
-            return None
-
-        # flip frame to mirror 
+            return None, None
+        # flip horizontally to mirror it
         frame = cv2.flip(frame, 1)
+        # convert it to RGB bc OpenCV uses BGR and mediapipe uses RGB
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        # convert to mediapipe image format
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
+        # inc timestamp
+        self.timestamp += 1
 
-        # convert bgr > rgb for mediapipe
-        img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = self.hands.process(img_rgb)
+        # run landmark detection
+        result = self.detector.detect_for_video(mp_image, self.timestamp)
+        # get the landmarks
+        landmarks = []
+        if result.hand_landmarks:
+            h, w, _ = frame.shape
+            for hand_landmarks in result.hand_landmarks:
+                # extract normalised coordinates (0 - 1 range)
+                hand_pts = [(lm.x, lm.y, lm.z) for lm in hand_landmarks]
+                landmarks.append(hand_pts)
+                
+                # draw connecitons (blue for now, might add more settings)
+                for start_idx, end_idx in HAND_CONNECTIONS:
+                    x1, y1 = int(hand_pts[start_idx][0] * w), int(hand_pts[start_idx][1] * h)
+                    x2, y2 = int(hand_pts[end_idx][0] * w), int(hand_pts[end_idx][1] * h)
+                    cv2.line(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
 
-        # draw hand landmarks if detected
-        if results.multi_hand_landmarks:
-            for hand_landmarks in results.multi_hand_landmarks:
-                self.mp_draw.draw_landmarks(frame, hand_landmarks, self.mp_hands.HAND_CONNECTIONS)
+                # draw landmarks (green for now, might add more settings)
+                for x, y, z in hand_pts:
+                    cv2.circle(frame, (int(x * w), int(y * h)), 5, (0, 255, 0), -1)
 
-        return frame
+        return frame, landmarks
 
     def release(self):
-        """ release camera resources """
-        self.capture.release()
+        """ releases resources """
+        self.cap.release()
+        self.detector.close()
         cv2.destroyAllWindows()
