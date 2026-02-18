@@ -1,74 +1,45 @@
 from persistence.db_connection import get_connection, return_connection
 
 class GameRepository:
-    @staticmethod
-    def save_round(player_id, player_move, computer_move, outcome):
-        """ insert a single round into the database """
+    def save_round(self, player_id, player_move, computer_move, outcome):
         conn = get_connection()
         if conn is None:
             print("\n[game_repo.py] Connection failure")
             return
         
         try:
-            cur = conn.cursor()
-            cur.execute(""" INSERT INTO game_history (player_id, player_move, computer_move, outcome)
-                            VALUES (%s, %s, %s, %s); """, 
-                        (player_id, player_move, computer_move, outcome))
-            conn.commit()
-            cur.close()
-            return True
+            with conn.cursor() as cur:
+                cur.execute(""" INSERT INTO game_history (player_id, player_move, computer_move, outcome)
+                                VALUES (%s, %s, %s, %s); """, 
+                            (player_id, player_move, computer_move, outcome))
+                conn.commit()
+                print("\n[game_repo.py] Round saved")
+                return True
         except Exception as e:
-            print("\n[game_repo.py] Failed to save round: ", e)  
+            conn.rollback()
+            print("\n[game_repo.py] Error saving round: ", e)  
             return False
         finally:
             return_connection(conn)  
 
-    @staticmethod
-    def create_player(name):
-        """ inserts a new player """
-        conn = get_connection()
-        if conn is None:
-            print("\n[game_repo.py] Connection failure")
-            return
-        
-        try:
-            cur = conn.cursor()
-            cur.execute(""" INSERT INTO players (name)
-                            VALUES (%s)
-                            RETURNING player_id; """,
-                        (name, ))
-            # get returned player id
-            player_id = cur.fetchone()[0]
-            conn.commit()
-            cur.close()
-            return player_id
-        except Exception as e:
-            print("\n[game_repo.py] Failed to create player: ", e)
-            return None
-        finally:
-            return_connection(conn)
-
-    @staticmethod
-    def get_history(player_id):
-        """ get all previous rounds for a player, returns a list of tuples """
+    def get_history(self, player_id):
         conn = get_connection()
         if conn is None:
             print("\n[game_repo.py] Connection failure")
             return []
         
         try:
-            cur = conn.cursor()
-            cur.execute(""" SELECT player_move, computer_move, outcome, played_at
-                            FROM game_history
-                            WHERE player_id = %s
-                            ORDER BY played_at ASC; """,
-                        (player_id, ))
-            # get all returned rows
-            rows = cur.fetchall()
-            cur.close()
-            return rows
+            with conn.cursor() as cur:
+                cur.execute(""" SELECT player_move, computer_move, outcome, played_at
+                                FROM game_history
+                                WHERE player_id = %s
+                                ORDER BY played_at ASC; """,
+                            (player_id, ))
+                # get all returned rows
+                rows = cur.fetchall()
+                return rows
         except Exception as e:
-            print("\n[game_repo.py] Could not fetch history: ", e)
+            print("\n[game_repo.py] Error fetching history: ", e)
             return []
         finally:
             return_connection(conn)
