@@ -14,7 +14,7 @@ class CameraFeed:
         # camera
         self.cap = cv2.VideoCapture(camera_index)
         if not self.cap.isOpened():
-            raise RuntimeError(f"[CAMERA FEED] Cannot open camera ID: {camera_index}")
+            raise RuntimeError(f"\n[camera_feed.py] Cannot open camera ID: {camera_index}")
         # mediapipe tasks hand model
         model_path = "FYP-Rock-Paper-Scissors-Prediction-System/Prototype/presentation/model/hand_landmarker.task"
 
@@ -72,7 +72,6 @@ class CameraFeed:
                 # draw landmarks (green for now, might add more settings)
                 for x, y, z in hand_pts:
                     cv2.circle(frame, (int(x * w), int(y * h)), 5, (0, 255, 0), -1)
-
         return frame, landmarks
 
     def release(self):
