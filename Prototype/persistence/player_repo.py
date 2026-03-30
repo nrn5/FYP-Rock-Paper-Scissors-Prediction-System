@@ -1,9 +1,6 @@
 from persistence.db_connection import get_connection, return_connection
 import psycopg2
 
-from persistence.db_connection import get_connection, return_connection
-import psycopg2
-
 class PlayerRepository:
     def create_player(self, name: str):
         conn = get_connection()
