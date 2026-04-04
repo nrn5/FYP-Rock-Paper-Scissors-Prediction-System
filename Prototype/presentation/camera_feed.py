@@ -1,5 +1,6 @@
 import cv2
 import mediapipe as mp
+from config.paths import HAND_LANDMARK_PATH
 
 HAND_CONNECTIONS = [
     (0, 1), (1, 2), (2, 3), (3, 4),        # THUMB
@@ -16,7 +17,8 @@ class CameraFeed:
         if not self.cap.isOpened():
             raise RuntimeError(f"\n[camera_feed.py] Cannot open camera ID: {camera_index}")
         # mediapipe tasks hand model
-        model_path = "FYP-Rock-Paper-Scissors-Prediction-System/Prototype/presentation/model/hand_landmarker.task"
+        model_path = HAND_LANDMARK_PATH
+        model_path = model_path.resolve()  # absolute path
 
         baseOptions = mp.tasks.BaseOptions
         handLandMarker = mp.tasks.vision.HandLandmarker
@@ -25,7 +27,7 @@ class CameraFeed:
 
         # configure detector - path to hand model, processing a video stream, number of hands
         options = handLMOptions(
-            base_options=baseOptions(model_asset_path=model_path),
+            base_options=baseOptions(model_asset_path=str(model_path)),
             running_mode=runningMode.VIDEO,
             num_hands=1
         )
