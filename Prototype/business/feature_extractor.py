@@ -5,11 +5,19 @@ import numpy as np
 
 def calculate_distance(a, b):
     """ 2d euclidean distance between two landmarks """
-    return math.dist((a.x, a.y), (b.x, b.y))
+    ax, ay = _xy(a)
+    bx, by = _xy(b)
+    return math.dist((ax, ay), (bx, by))
 
 def calculate_hand_size(landmarks):
     """ estimate hand size using wrist to pinky mcp """
     return calculate_distance(landmarks[0], landmarks[17]) + 1e-6
+
+def _xy(p):
+    """ to support both mediapipe landmakrs and tuples (for training) """
+    if hasattr(p, "x"):   # mp landmark
+        return p.x, p.y
+    return p[0], p[1]     # tuple/list
 
 def extract_features(landmarks):
     """ convert hand landmarks into feature vector for ML
