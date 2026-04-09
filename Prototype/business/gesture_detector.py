@@ -10,11 +10,7 @@ import numpy as np
 import joblib
 
 from config.gesture_config import *
-from business.feature_extractor import (
-    extract_features,
-    calculate_distance,
-    calculate_hand_size,
-)
+from business.feature_extractor import (extract_features, calculate_distance, calculate_hand_size,)
 
 # { STATE ENUM }
 class RPSState(Enum):
